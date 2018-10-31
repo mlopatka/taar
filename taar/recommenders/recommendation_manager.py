@@ -38,6 +38,8 @@ EMPTY_TEST_CLIENT_IDS = ['00000000-aaaa-0000-0000-000000000000',
                          '33333333-aaaa-3333-3333-333333333333']
 
 
+# TODO: rework this function as it seems to add a lot of overhead
+# See related issue https://github.com/mozilla/taar/issues/113
 def schema_validate(colandar_schema):
     """
     Compute the function signature and apply a schema validator on the
@@ -85,7 +87,7 @@ def schema_validate(colandar_schema):
 
                 # This logger can't use the context logger as the code
                 # is running in a method decorator
-                schema_logger.warn(msg)
+                schema_logger.warning(msg)
                 # Invalid data means TAAR safely returns an empty list
                 return []
             return func(*w_args, **w_kwargs)
@@ -173,7 +175,7 @@ class RecommendationManager:
 
         client_info = self.profile_fetcher.get(client_id)
         if client_info is None:
-            self.logger.warn("Defaulting to empty results.  No client info fetched from dynamo.")
+            self.logger.warning("Defaulting to empty results.  No client info fetched from dynamo.")
             return []
 
         return branch_method(client_info, client_id, limit, extra_data)
