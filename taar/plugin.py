@@ -34,14 +34,14 @@ def configure_plugin(app):
     This is a factory function that configures all the routes for
     flask given a particular library.
     """
-    @app.route('/api/recommendations/<uuid:uuid_client_id>/')
-    def recommendations(uuid_client_id):
+    @app.route('/api/recommendations/<hashed_client_id>/')
+    def recommendations(hashed_client_id):
         """Return a list of recommendations provided a telemetry client_id."""
         # Use the module global PROXY_MANAGER
         global PROXY_MANAGER
 
         # Coerce the uuid.UUID type into a string
-        client_id = str(uuid_client_id)
+        client_id = str(hashed_client_id)
 
         branch = request.args.get('branch', '')
 
