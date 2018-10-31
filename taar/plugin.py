@@ -34,7 +34,7 @@ def configure_plugin(app):
     This is a factory function that configures all the routes for
     flask given a particular library.
     """
-    @app.route('/api/recommendations/<hashed_client_id>/')
+    @app.route('/v1/api/recommendations/<hashed_client_id>/')
     def recommendations(hashed_client_id):
         """Return a list of recommendations provided a telemetry client_id."""
         # Use the module global PROXY_MANAGER
