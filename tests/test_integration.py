@@ -3,22 +3,40 @@ from taar.context import default_context
 from taar import ProfileFetcher
 from taar.profile_fetcher import ProfileController
 from taar import recommenders
+from flask import url_for
 import time
+from flask import Flask
+import uuid
 
 
 def create_recommendation_manager():
     root_ctx = default_context()
     pf = ProfileFetcher(root_ctx)
-    pf.set_client(ProfileController(root_ctx, 'us-west-2', 'taar_addon_data_20180206'))
-    root_ctx['profile_fetcher'] = pf
+    pf.set_client(ProfileController(root_ctx, "us-west-2", "taar_addon_data_20180206"))
+    root_ctx["profile_fetcher"] = pf
     r_factory = recommenders.RecommenderFactory(root_ctx.child())
-    root_ctx['recommender_factory'] = r_factory
+    root_ctx["recommender_factory"] = r_factory
     rm = recommenders.RecommendationManager(root_ctx.child())
     return rm
 
 
+@pytest.fixture
+def app():
+    from taar.plugin import configure_plugin
+
+    flask_app = Flask("test")
+    plugin = configure_plugin(flask_app)
+    return plugin.app
+
+
+@pytest.mark.skip
+def test_my_json_response(client):
+    res = client.get("/api/recommendations/some_telemetry_hash/")
+    assert res.json == 42
+
+
 @pytest.mark.skip("This is an integration test")
-def test_recommenders(client_id='some_dev_client_id', branch='linear'):
+def test_recommenders(client_id="some_dev_client_id", branch="linear"):
     """
     This integration test can be used to drive the TAAR
     RecommendationManager from your machine.  This assumes you have
@@ -57,7 +75,7 @@ def test_recommenders(client_id='some_dev_client_id', branch='linear'):
             In [4]:
     """
     rm = create_recommendation_manager()
-    result = rm.recommend(client_id, limit=10, extra_data={'branch': branch})
+    result = rm.recommend(client_id, limit=10, extra_data={"branch": branch})
     return result
 
 
@@ -72,7 +90,82 @@ def micro_bench(x, client_id, branch_label):
     rm = create_recommendation_manager()
     start = time.time()
     for i in range(x):
-        rm.recommend(client_id, limit=10, extra_data={'branch': branch_label})
+        rm.recommend(client_id, limit=10, extra_data={"branch": branch_label})
     end = time.time()
 
     print(("%0.5f seconds per request" % ((end - start) / x)))
+
+
+@pytest.fixture
+def empty_recommendation_manager(monkeypatch):
+    # TODO: migrate the fixtures from taar-api/tests/test_views.py over
+    return None
+
+
+@pytest.mark.skip("move this to taar library")
+def test_empty_recommendation(client, empty_recommendation_manager):
+    response = client.get(url_for("recommendations", uuid_client_id=uuid.uuid4()))
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    assert response.data == b'{"results": []}'
+
+
+@pytest.mark.skip("move this to taar library")
+def test_locale_recommendation(client, locale_recommendation_manager):
+    response = client.get(
+        url_for("recommendations", uuid_client_id=uuid.uuid4()) + "?locale=en-US"
+    )
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    assert response.data == b'{"results": ["addon-Locale"]}'
+
+    response = client.get(url_for("recommendations", uuid_client_id=uuid.uuid4()))
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    assert response.data == b'{"results": []}'
+
+
+@pytest.mark.skip("move this to taar library")
+def test_platform_recommendation(client, platform_recommendation_manager):
+    uri = (
+        url_for("recommendations", uuid_client_id=str(uuid.uuid4())) + "?platform=WOW64"
+    )
+    response = client.get(uri)
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    assert response.data == b'{"results": ["addon-WOW64"]}'
+
+    response = client.get(url_for("recommendations", uuid_client_id=uuid.uuid4()))
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    assert response.data == b'{"results": []}'
+
+
+@pytest.mark.skip("move this to taar library")
+def test_intervention_a(client, static_recommendation_manager):
+    url = url_for("recommendations", uuid_client_id=uuid.uuid4())
+    response = client.get(url + "?branch=intervention-a")
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    expected = b'{"results": ["intervention-a-addon-1", "intervention-a-addon-2", "intervention-a-addon-N"]}'
+    assert response.data == expected
+
+
+@pytest.mark.skip("move this to taar library")
+def test_intervention_b(client, static_recommendation_manager):
+    url = url_for("recommendations", uuid_client_id=uuid.uuid4())
+    response = client.get(url + "?branch=intervention_b")
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    expected = b'{"results": ["intervention_b-addon-1", "intervention_b-addon-2", "intervention_b-addon-N"]}'
+    assert response.data == expected
+
+
+@pytest.mark.skip("move this to taar library")
+def test_control_branch(client, static_recommendation_manager):
+    url = url_for("recommendations", uuid_client_id=uuid.uuid4())
+    response = client.get(url + "?branch=control")
+    assert response.status_code == 200
+    assert response.headers["Content-Type"] == "application/json"
+    expected = b'{"results": ["control-addon-1", "control-addon-2", "control-addon-N"]}'
+    assert response.data == expected
