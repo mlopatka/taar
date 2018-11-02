@@ -29,7 +29,7 @@ class ResourceProxy(object):
 PROXY_MANAGER = ResourceProxy()
 
 
-def configure_plugin(app):
+def configure_plugin(app):   # noqa: C901
     """
     This is a factory function that configures all the routes for
     flask given a particular library.
