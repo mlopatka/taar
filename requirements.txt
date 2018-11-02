@@ -59,6 +59,7 @@ pycryptodome==3.7.0
 pyflakes==2.0.0
 Pygments==2.2.0
 pytest==3.9.3
+pytest-coverage
 pytest-flask==0.14.0
 python-dateutil==2.7.5
 python-decouple==3.1
