@@ -42,10 +42,13 @@ def configure_plugin(app):
         global PROXY_MANAGER
 
         try:
-            post_data = json.loads(request.data)
-            promoted_guids = post_data.get("options", {}).get("promoted", [])
-            promoted_guids.sort(key=lambda x: x[1], reverse=True)
-            promoted_guids = [x[0] for x in promoted_guids]
+            promoted_guids = []
+            if request.method == 'POST':
+                post_data = json.loads(request.data)
+                promoted_guids = post_data.get("options", {}).get("promoted", [])
+                if promoted_guids:
+                    promoted_guids.sort(key=lambda x: x[1], reverse=True)
+                    promoted_guids = [x[0] for x in promoted_guids]
         except Exception as e:
             return app.response_class(
                 response=json.dumps({"error": "Invalid JSON in POST: {}".format(e)}),
