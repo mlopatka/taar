@@ -7,6 +7,7 @@ from flask import url_for
 import time
 from flask import Flask
 import uuid
+from unittest.mock import MagicMock
 
 
 def create_recommendation_manager():
@@ -23,16 +24,38 @@ def create_recommendation_manager():
 @pytest.fixture
 def app():
     from taar.plugin import configure_plugin
+    from taar.plugin import PROXY_MANAGER
 
     flask_app = Flask("test")
-    plugin = configure_plugin(flask_app)
-    return plugin.app
+
+    # Clobber the default recommendation manager with a MagicMock
+    mock_recommender = MagicMock()
+    PROXY_MANAGER.setResource(mock_recommender)
+
+    configure_plugin(flask_app)
+
+    return flask_app
 
 
-@pytest.mark.skip
-def test_my_json_response(client):
-    res = client.get("/api/recommendations/some_telemetry_hash/")
-    assert res.json == 42
+def test_empty_results_by_default(client, app):
+    # The default behaviour under test should be that the
+    # RecommendationManager simply no-ops everything so we get back an
+    # empty result list.
+    res = client.get("/v1/api/recommendations/not_a_real_hash/")
+    assert res.json == {"results": []}
+
+
+def test_only_promoted_addons(client, app):
+    # POSTing a JSON blob allows us to specify promoted addons to the
+    # TAAR service.
+    res = client.post(
+        "/v1/api/recommendations/not_a_real_hash/",
+        json=dict(
+            {"options": {"promoted": [["guid1", 10], ["guid2", 5], ["guid55", 8]]}}
+        ),
+        follow_redirects=True,
+    )
+    assert res.json == {"results": ["guid1", "guid55", "guid2"]}
 
 
 @pytest.mark.skip("This is an integration test")
