@@ -29,7 +29,7 @@ class ResourceProxy(object):
 PROXY_MANAGER = ResourceProxy()
 
 
-def configure_plugin(app):   # noqa: C901
+def configure_plugin(app):  # noqa: C901
     """
     This is a factory function that configures all the routes for
     flask given a particular library.
@@ -43,8 +43,15 @@ def configure_plugin(app):   # noqa: C901
 
         try:
             promoted_guids = []
-            if request.method == 'POST':
-                post_data = json.loads(request.data)
+            if request.method == "POST":
+                json_data = request.data
+                # At least Python3.5 returns request.data as bytes
+                # type instead of a string type.
+                # Both Python2.7 and Python3.7 return a string type
+                if type(json_data) == bytes:
+                    json_data = json_data.decode("utf8")
+
+                post_data = json.loads(json_data)
                 promoted_guids = post_data.get("options", {}).get("promoted", [])
                 if promoted_guids:
                     promoted_guids.sort(key=lambda x: x[1], reverse=True)
